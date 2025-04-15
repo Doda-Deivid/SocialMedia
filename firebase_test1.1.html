@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socialinė platforma</title>
+    <script type="module" src="firebase.js"></script>
+    <style>
+:root {
+            --bg-light: #fafafa;
+            --bg-dark: #000;
+            --text-light: #262626;
+            --text-dark: #fafafa;
+            --container-light: #fff;
+            --container-dark: #1c1c1c;
+            --border-light: #dbdbdb;
+            --border-dark: #3a3b3c;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease-in-out;
+        }
+
+        body.dark-mode {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--container-light);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        body.dark-mode .container {
+            background: var(--container-dark);
+        }
+
+        .post-box {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            resize: none;
+            margin-bottom: 10px;
+            background: inherit;
+            color: inherit;
+        }
+
+        body.dark-mode .post-box {
+            border: 1px solid var(--border-dark);
+        }
+
+        .post {
+            background: var(--container-light);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+        }
+
+        body.dark-mode .post {
+            background: var(--container-dark);
+        }
+
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+        }
+
+        .buttons button {
+            background: none;
+            color: inherit;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
+        button {
+            background-color: #0095f6;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .dark-mode-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .search-container {
+        width: 100%;
+        max-width: 500px;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: var(--container-light);
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease-in-out;
+    }
+
+        body.dark-mode .search-container {
+        background: var(--container-dark);
+    }
+
+        .filter-box {
+        width: 95%;
+        padding: 10px;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: inherit;
+        color: inherit;
+    }
+    </style>
+</head>
+</body>
+<body>
+    <button class="dark-mode-toggle">🌙</button>
+<button id="togglePostForm" class="post-toggle-btn">+</button>
+
+
+
+<div id="postFormContainer" class="container hidden">
+    <h2>Parašykite įrašą</h2>
+    <textarea id="postContent" class="post-box" placeholder="Įrašykite čia..."></textarea>
+    
+    <div class="post-actions">
+        <label for="mediaInput" class="upload-btn">📷 Pridėti nuotrauką/vaizdo įrašą</label>
+        <input type="file" id="mediaInput" class="file-input" accept="image/*, video/*">
+        <div id="uploadStatus"></div>
+    </div>
+    
+    <div id="mediaPreview" class="media-preview"></div>
+    <button id="postButton">Paskelbti</button>
+</div>
+<div class="search-container">
+    <input type="text" id="searchKeyword" class="filter-box" placeholder="Ieškoti pagal raktinį žodį...">
+</div>
+<div id="feed" class="container"></div>
+
+<style>
+    .hidden {
+        opacity: 0;
+        transform: scale(0.9);
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .visible {
+        opacity: 1;
+        transform: scale(1);
+        max-height: 500px; /* Pakoreguokite pagal poreikį */
+    }
+</style>
+
+<script>
+    document.querySelector('.dark-mode-toggle').addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        const isDarkMode = document.body.classList.contains('dark-mode');
+        document.querySelector('.dark-mode-toggle').textContent = isDarkMode ? '☀️' : '🌙';
+    });
+
+    document.getElementById("togglePostForm").addEventListener("click", function() {
+        const formContainer = document.getElementById("postFormContainer");
+        formContainer.classList.toggle("hidden");
+        formContainer.classList.toggle("visible");
+    });
+
+    document.getElementById("postButton").addEventListener("click", function() {
+        const content = document.getElementById("postContent").value;
+        if (content.trim() === "") return;
+
+        document.getElementById("feed").prepend(post);
+        document.getElementById("postContent").value = "";
+
+        
+        const formContainer = document.getElementById("postFormContainer");
+        formContainer.classList.add("hidden");
+        formContainer.classList.remove("visible");
+    });
+    
+    document.getElementById('searchKeyword').addEventListener('input', function() {
+            const keyword = this.value.trim().toLowerCase();
+            filterPosts(keyword);
+        });
+
+       
+        function filterPosts(keyword) {
+            const posts = document.querySelectorAll('.post');
+            posts.forEach(post => {
+                const content = post.querySelector('p').textContent.toLowerCase();
+                if (content.includes(keyword)) {
+                    post.style.display = 'block'; 
+                } else {
+                    post.style.display = 'none'; 
+                }
+            });
+        }
+</script>
+
+</head>
+
+<body>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, set, push, onChildAdded, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7...",
+            authDomain: "newmrn-a9c12.firebaseapp.com",
+            projectId: "newmrn-a9c12",
+            databaseURL: "https://newmrn-a9c12-default-rtdb.europe-west1.firebasedatabase.app/",
+            storageBucket: "newmrn-a9c12.appspot.com",
+            messagingSenderId: "201537306268",
+            appId: "1:201537306268:web:e8ffa4911916b6c526b759",
+            measurementId: "G-3K9QV4HSYP"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const storage = getStorage(app);
+        
+        let selectedFile = null;
+        
+       
+        document.getElementById('mediaInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            selectedFile = file;
+            const preview = document.getElementById('mediaPreview');
+            preview.innerHTML = '';
+            
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    preview.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            } else if (file.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.controls = true;
+                video.src = URL.createObjectURL(file);
+                preview.appendChild(video);
+            }
+        });
+        
+        async function addPost() {
+    const content = document.getElementById('postContent').value.trim();
+    const file = selectedFile;
+    
+    if (!content && !file) {
+        alert('Įrašykite tekstą arba pasirinkite failą!');
+        return;
+    }
+    
+    const postButton = document.getElementById('postButton');
+    const originalText = postButton.textContent;
+    postButton.disabled = true;
+    postButton.innerHTML = originalText + '<span class="loading"></span>';
+    
+    try {
+        let mediaUrl = null;
+        let mediaType = null;
+        
+        if (file) {
+            mediaType = file.type;
+            const storageReference = storageRef(storage, `posts/${Date.now()}_${file.name}`);
+            
+            // ✅ Show Upload Progress
+            document.getElementById('uploadStatus').textContent = "Įkeliama...";
+
+            const uploadTask = uploadBytesResumable(storageReference, file);
+            
+            await new Promise((resolve, reject) => {
+                uploadTask.on('state_changed', 
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        document.getElementById('uploadStatus').textContent = `Įkelta: ${Math.round(progress)}%`;
+                    },
+                    (error) => {
+                        console.error("Upload failed:", error);
+                        document.getElementById('uploadStatus').textContent = "Įkelti nepavyko!";
+                        reject(error);
+                    },
+                    async () => {
+                        mediaUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                        resolve();
+                    }
+                );
+            });
+        }
+        
+        // ✅ Ensure the post is added only after media is uploaded
+        const newPostRef = push(ref(db, 'posts'));
+        await set(newPostRef, {
+            content: content,
+            mediaUrl: mediaUrl || null,
+            mediaType: mediaType || null,
+            likes: 0,
+            loves: 0,
+            hahas: 0,
+            timestamp: Date.now()
+        });
+
+        // ✅ Clear Inputs After Posting
+        document.getElementById('postContent').value = "";
+        document.getElementById('mediaPreview').innerHTML = "";
+        document.getElementById('uploadStatus').textContent = "";
+        selectedFile = null;
+
+    } catch (error) {
+        console.error("Error creating post:", error);
+        alert('Įrašo sukurti nepavyko!');
+    } finally {
+        postButton.disabled = false;
+        postButton.textContent = originalText;
+    }
+}
+
+        
+        onChildAdded(ref(db, 'posts'), (snapshot) => {
+            let postData = snapshot.val();
+            let post = document.createElement('div');
+            post.classList.add('post');
+            post.id = `post-${snapshot.key}`;
+            
+            // Media display
+            let mediaElement = '';
+            if (postData.mediaUrl) {
+                if (postData.mediaType.startsWith('image/')) {
+                    mediaElement = `<img src="${postData.mediaUrl}" class="media-preview">`;
+                } else if (postData.mediaType.startsWith('video/')) {
+                    mediaElement = `
+                        <video controls class="media-preview">
+                            <source src="${postData.mediaUrl}" type="${postData.mediaType}">
+                        </video>
+                    `;
+                }
+            }
+            
+            post.innerHTML = `
+                <p>${postData.content || ''}</p>
+                ${mediaElement}
+                <div class="buttons">
+                    <button data-react="likes" data-post-id="${snapshot.key}">👍<span>${postData.likes || 0}</span></button>
+                    <button data-react="loves" data-post-id="${snapshot.key}">❤️<span>${postData.loves || 0}</span></button>
+                    <button data-react="hahas" data-post-id="${snapshot.key}">🤣<span>${postData.hahas || 0}</span></button>
+					<button data-react="skull" data-post-id="${snapshot.key}">​💀​<span>${postData.skull || 0}</span></button>
+					<button data-react="mad" data-post-id="${snapshot.key}">​😡<span>${postData.mad || 0}</span></button>
+                </div>
+                <input type="text" placeholder="Komentuoti..." data-post-id="${snapshot.key}" class="comment-input">
+                <div class="comments" id="comments-${snapshot.key}"></div>
+            `;
+            document.getElementById('feed').prepend(post);
+        
+            // Comment input handling
+            const commentInput = post.querySelector('.comment-input');
+            commentInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const comment = e.target.value.trim();
+                    if (comment) {
+                        push(ref(db, `posts/${snapshot.key}/comments`), {
+                            text: comment,
+                            timestamp: Date.now()
+                        }).then(() => {
+                            e.target.value = '';
+                        }).catch(error => {
+                            console.error("Komentaro klaida:", error);
+                        });
+                    }
+                }
+            });
+        
+            // Reaction updates
+            ["likes", "loves", "hahas"].forEach(type => {
+                onValue(ref(db, `posts/${snapshot.key}/${type}`), (snapshot) => {
+                    let newValue = snapshot.val() || 0;
+                    post.querySelector(`button[data-react="${type}"] span`).textContent = newValue;
+                });
+            });
+        
+            // Comments updates
+            onChildAdded(ref(db, `posts/${snapshot.key}/comments`), (commentSnapshot) => {
+                displayComment(snapshot.key, commentSnapshot.val());
+            });
+        });
+        
+        function react(postId, type, button) {
+            const reactionRef = ref(db, `posts/${postId}/${type}`);
+            runTransaction(reactionRef, (currentValue) => {
+                return (currentValue || 0) + 1;
+            }).catch(error => {
+                console.error("Klaida atnaujinant reakciją:", error);
+            });
+        }
+        
+        function displayComment(postId, comment) {
+            let commentsDiv = document.querySelector(`#comments-${postId}`);
+            if (!commentsDiv) return;
+            
+            let commentElement = document.createElement("p");
+            commentElement.textContent = comment.text || comment;
+            commentElement.style.borderTop = "1px solid #ddd";
+            commentElement.style.padding = "5px 0";
+            commentsDiv.appendChild(commentElement);
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('postButton').addEventListener('click', addPost);
+            
+            document.getElementById('feed').addEventListener('click', (e) => {
+                if (e.target.matches('button[data-react]')) {
+                    const postId = e.target.dataset.postId;
+                    const type = e.target.dataset.react;
+                    react(postId, type, e.target);
+                }
+            });
+        });
+
+
+    </script>
+</body>
+</html>
