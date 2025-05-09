@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Forma</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: black;
+            overflow: hidden;
+        }
+        canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .register-container {
+            position: relative;
+            width: 320px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            text-align: center;
+            color: white;
+            backdrop-filter: blur(12px);
+            z-index: 2;
+        }
+        .register-container input, 
+        .register-container textarea {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+        }
+        .register-container button {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(to right, red, yellow);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .login-link {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .login-link a {
+            color: #ff9900;
+            text-decoration: none;
+        }
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="animation"></canvas>
+
+<div class="register-container">
+    <h2>Register</h2>
+    <form id="registerForm" action="register.php" method="post" enctype="multipart/form-data">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <textarea name="bio" placeholder="Bio (optional)" rows="3"></textarea>
+        <input type="file" name="profile_picture" accept="image/*">
+        <button type="submit">Create Profile</button>
+        <div class="login-link">
+            Already have an account? <a href="loginforma.html">Login</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Same animated background as loginforma.html
+const canvas = document.getElementById('animation');
+const ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let angle = 0;
+let colorAngle = 0;
+let contours = [];
+
+function generateContours() {
+    contours = [];
+    let centerX = canvas.width / 2;
+    let centerY = canvas.height / 2;
+    let baseRadiusX = 220;
+    let baseRadiusY = 130;
+    
+    for (let j = 0; j < 3; j++) {
+        let points = [];
+        let radiusX = baseRadiusX + j * 30;
+        let radiusY = baseRadiusY + j * 20;
+
+        for (let i = 0; i < Math.PI * 2; i += 0.1) {
+            let x = centerX + Math.cos(i) * radiusX;
+            let y = centerY + Math.sin(i) * radiusY;
+            points.push({ x, y, offset: Math.random() * 5 });
+        }
+        contours.push(points);
+    }
+}
+
+function drawLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (let j = 0; j < contours.length; j++) {
+        let points = contours[j];
+
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, `hsl(${colorAngle + j * 40}, 100%, 60%)`);
+        gradient.addColorStop(1, `hsl(${(colorAngle + 180 + j * 40) % 360}, 100%, 60%)`);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        for (let i = 0; i < points.length; i++) {
+            let point = points[i];
+            let x = point.x + Math.cos(angle + point.offset) * 7;
+            let y = point.y + Math.sin(angle + point.offset) * 7;
+            ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+    }
+
+    angle += 0.02;
+    colorAngle = (colorAngle + 1) % 360;
+
+    requestAnimationFrame(drawLoop);
+}
+
+generateContours();
+drawLoop();
+
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    generateContours();
+});
+</script>
+
+</body>
+</html>
